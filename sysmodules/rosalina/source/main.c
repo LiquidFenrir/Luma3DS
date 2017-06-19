@@ -31,6 +31,7 @@
 #include "menu.h"
 #include "errdisp.h"
 #include "hbloader.h"
+#include "update.h"
 #include "utils.h"
 #include "MyThread.h"
 #include "menus/process_patches.h"
@@ -97,7 +98,7 @@ int main(void)
     Result res = 0;
     Handle notificationHandle;
 
-    MyThread *menuThread = menuCreateThread(), *errDispThread = errDispCreateThread(), *hbldrThread = hbldrCreateThread();
+    MyThread *menuThread = menuCreateThread(), *errDispThread = errDispCreateThread(), *hbldrThread = hbldrCreateThread(), *updateThread = updateCreateThread();
 
     if(R_FAILED(srvEnableNotification(&notificationHandle)))
         svcBreak(USERBREAK_ASSERT);
@@ -129,6 +130,7 @@ int main(void)
     MyThread_Join(menuThread, -1LL);
     MyThread_Join(errDispThread, -1LL);
     MyThread_Join(hbldrThread, -1LL);
+    MyThread_Join(updateThread, -1LL);
 
     svcCloseHandle(notificationHandle);
     return 0;
