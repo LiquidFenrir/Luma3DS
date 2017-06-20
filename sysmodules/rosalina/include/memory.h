@@ -40,5 +40,6 @@ s32 strlen(const char *string);
 s32 strcmp(const char *str1, const char *str2);
 s32 strncmp(const char *str1, const char *str2, u32 size);
 const char *strchr(const char *string, int c);
+char *strstr(const char *haystack, const char *needle);
 void hexItoa(u64 number, char *out, u32 digits, bool uppercase);
 unsigned long int xstrtoul(const char *nptr, char **endptr, int base, bool allowPrefix, bool *ok);

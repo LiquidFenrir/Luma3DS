@@ -171,6 +171,20 @@ const char *strchr(const char *string, int c)
     return NULL;
 }
 
+char *strstr(const char *haystack, const char *needle)
+{
+	u32 offset = 0;
+	
+	while (*(haystack + offset)) {
+		if (strncmp((haystack + offset), needle, strlen(needle)))
+			return (char *)(haystack + offset);
+		offset++;
+	}
+	
+	return (char *)NULL;
+}
+
+
 void hexItoa(u64 number, char *out, u32 digits, bool uppercase)
 {
     const char hexDigits[] = "0123456789ABCDEF";
