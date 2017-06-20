@@ -29,7 +29,7 @@ void AtoW(char* in, u16* out) {
 
 void addNotif(const char * title, const char * message)
 {
-	u16 titleBytes[256]  = {0};
+	u16 titleBytes[256] = {0};
 	AtoW((char*)title, titleBytes);
 
 	u16 messageBytes[256] = {0};
