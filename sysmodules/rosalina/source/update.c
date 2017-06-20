@@ -189,25 +189,44 @@ void getVersion(void) {
 	currentCommitHash = (u32)out;
 }
 
+u32 waitForInternet(void) 
+{
+	acInit();
+	u32 wifiStatus;
+	ACU_GetWifiStatus(&wifiStatus);
+	while (wifiStatus == 0) {
+		ACU_GetWifiStatus(&wifiStatus);
+		svcSleepThread(300000 * 10000LL);
+	}
+	acExit();
+	return wifiStatus;
+}
+
 void updateThreadMain(void)
 {
+	waitForInternet();
+	u64 lastCheck = 0;
+	u64 currentTime = osGetTime();
 	while(!terminationRequest) 
 	{
-		if ((HID_PAD & (BUTTON_UP | BUTTON_R1 | BUTTON_START)) == (BUTTON_UP | BUTTON_R1 | BUTTON_START))
+		currentTime = osGetTime();
+		if (lastCheck + (8.64 * 10000000) < currentTime)
 		{
+			//currentTime = osGetTime();
 			char apiresponse[0x1000] = {0};
 			getApiResponse("http://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse);
 			getReleaseTagName(apiresponse);
 			getVersion();
 
-			//if the download failed, the releaseTagName will be blank, don't send a notif in that case
+			//if the download failed, the releaseTagName will be blank, don't send a notif in that case 
 			if (releaseTagName[0] != '\0' && strcmp(currentVersionString, releaseTagName)) {
-				char messageString[96] = {0};
+				char messageString[128] = {0};
 
 				sprintf(messageString, "Your Luma is out of date!\nCurrent Luma Version: %s\nMost recent version: %s", currentVersionString, releaseTagName);
 
 				addNotif("Luma3DS update available!", messageString);
 			}
+			lastCheck = osGetTime();
 		}
 		svcSleepThread(50 * 1000 * 1000LL);
 	}
