@@ -195,13 +195,10 @@ void updateThreadMain(void)
 	{
 		if ((HID_PAD & (BUTTON_UP | BUTTON_R1 | BUTTON_START)) == (BUTTON_UP | BUTTON_R1 | BUTTON_START))
 		{
-			getVersion();
-			
 			char apiresponse[0x1000] = {0};
 			getApiResponse("http://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse);
 			getReleaseTagName(apiresponse);
-			
-			// strcpy(releaseTagName, "v8.1.2");
+			getVersion();
 			
 			//if the download failed, the releaseTagName will be blank, don't send a notif in that case
 			if (releaseTagName[0] != '\0' && strcmp(currentVersionString, releaseTagName)) {
