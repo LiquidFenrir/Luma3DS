@@ -123,12 +123,12 @@ void getApiResponse(const char * url, u8 * buf)
 	
 	ret = setupContext(&context, url, &contentsize);
 	
-	u8 done_one = 0;
+	bool done_one = false;
 	u8 useless_buf[0x1000];
 	do {
 		if (!done_one) {
 			ret = httpcDownloadData(&context, buf, 0x1000, &readsize);
-			done_one = 1;
+			done_one = true;
 		}
 		else {
 			ret = httpcDownloadData(&context, useless_buf, 0x1000, &readsize);
