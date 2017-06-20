@@ -163,7 +163,7 @@ void getApiResponse(const char * url, u8 * buf)
 
 //use with https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest
 void getReleaseTagName(const char * apiresponse) {
-	char * tagstring = "\"tag_name\": \"";
+	char * tagstring = "\"tag_name\":\"";
 	char * endstring = "\",";
 
 	char *tagstart, *tagend;
@@ -181,7 +181,7 @@ void getReleaseTagName(const char * apiresponse) {
 //and use getReleaseTagName before
 void getReleaseCommitHash(const char * apiresponse) {
 	char namestring[21] = {0};
-	sprintf(namestring, "\"name\": \"%s\"", releaseTagName);
+	sprintf(namestring, "\"name\":\"%s\"", releaseTagName);
 	char * shastring = "\"sha\": \"";
 
 	char *namestart, *shastart;
