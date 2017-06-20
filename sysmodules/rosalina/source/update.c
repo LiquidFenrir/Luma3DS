@@ -69,25 +69,42 @@ void getVersion(void) {
 	currentCommitHash = (u32)out;
 }
 
+// Thanks Jess <3
+void AtoW(char* in, u16* out) {
+	int i;
+	for (i = 0; i < strlen(in); i++)
+		out[i] = in[i];
+}
+
 void updateThreadMain(void)
 {
-	newsInit();
 	while(!terminationRequest) 
 	{
 		if ((HID_PAD & (BUTTON_UP | BUTTON_R1 | BUTTON_START)) == (BUTTON_UP | BUTTON_R1 | BUTTON_START))
 		{
 			getVersion();
 			
-			char messageString[32] = {0};
-			sprintf(messageString, "Current Luma Version: %s", currentVersionString);
+			/*
+			char apiresponse[0x1000] = {0};
+			//something something sockets
+			getReleaseTagName(apiresponse);
+			*/
 			
-			u16 messageBytes[64] = {0};
-			size_t messageSize = utf8_to_utf16(messageBytes, (u8*)messageString, 31);
-
-			NEWS_AddNotification(u"Test", 4, messageBytes, messageSize, NULL, 0, false);
+			strcpy(releaseTagName, "v8.1.2");
 			
+			if (strcmp(currentVersionString, releaseTagName)) {
+				char messageString[96] = {0};
+				
+				sprintf(messageString, "Your Luma is out of date!\nCurrent Luma Version: %s\nMost recent version: %s", currentVersionString, releaseTagName);
+				
+				u16 messageBytes[192] = {0};
+				AtoW(messageString, messageBytes);
+				
+				newsInit();
+				NEWS_AddNotification(u"Luma3DS update available!", 25, messageBytes, strlen(messageString), NULL, 0, false);
+				newsExit();
+			}
 		}
 		svcSleepThread(50 * 1000 * 1000LL);
 	}
-	newsExit();
 }
