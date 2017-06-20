@@ -40,14 +40,6 @@ void addNotif(const char * title, const char * message)
 	newsExit();
 }
 
-void reportErrorInNotifs(const char * errorSource, Result retToShow)
-{
-	char messageString[96] = {0};
-	sprintf(messageString, "An error occured in:\n%s\nret: 0x%.8lx", errorSource, retToShow);
-	
-	addNotif("An error happened!", messageString);
-}
-
 Result setupContext(httpcContext * context, const char * url, u32 * size)
 {
 	Result ret = 0;
@@ -55,42 +47,36 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 	
 	ret = httpcOpenContext(context, HTTPC_METHOD_GET, url, 1);
 	if (ret != 0) {
-		reportErrorInNotifs("httpcOpenContext", ret);
 		httpcCloseContext(context);
 		return ret;
 	}
 	
 	ret = httpcAddRequestHeaderField(context, "User-Agent", "MultiUpdater");
 	if (ret != 0) {
-		reportErrorInNotifs("httpcAddRequestHeaderField", ret);
 		httpcCloseContext(context);
 		return ret;
 	}
 	
 	ret = httpcSetSSLOpt(context, SSLCOPT_DisableVerify);
 	if (ret != 0) {
-		reportErrorInNotifs("httpcSetSSLOpt", ret);
 		httpcCloseContext(context);
 		return ret;
 	}
 	
 	ret = httpcAddRequestHeaderField(context, "Connection", "Keep-Alive");
 	if (ret != 0) {
-		reportErrorInNotifs("httpcAddRequestHeaderField", ret);
 		httpcCloseContext(context);
 		return ret;
 	}
 	
 	ret = httpcBeginRequest(context);
 	if (ret != 0) {
-		reportErrorInNotifs("httpcBeginRequest", ret);
 		httpcCloseContext(context);
 		return ret;
 	}
 	
 	ret = httpcGetResponseStatusCode(context, &statuscode);
 	if (ret != 0) {
-		reportErrorInNotifs("httpcGetResponseStatusCode", ret);
 		httpcCloseContext(context);
 		return ret;
 	}
@@ -100,7 +86,6 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 		
 		ret = httpcGetResponseHeader(context, "Location", newurl, 0x1000);
 		if (ret != 0) {
-			reportErrorInNotifs("httpcGetResponseHeader", ret);
 			httpcCloseContext(context);
 			return ret;
 		}
@@ -114,14 +99,12 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 	}
 	
 	if (statuscode != 200) {
-		reportErrorInNotifs("statuscode not 200 ok", statuscode);
 		httpcCloseContext(context);
 		return -1;
 	}
 	
 	ret = httpcGetDownloadSizeState(context, NULL, size);
 	if (ret != 0) {
-		reportErrorInNotifs("httpcGetDownloadSizeState", ret);
 		httpcCloseContext(context);
 		return ret;
 	}
@@ -134,13 +117,11 @@ void getApiResponse(const char * url, u8 * buf)
 	Result ret = 0;
 	
 	ret = httpcInit(0);
-	if (ret) reportErrorInNotifs("httpcInit", ret);
 	
 	httpcContext context;
 	u32 contentsize = 0, readsize = 0;
 	
 	ret = setupContext(&context, url, &contentsize);
-	if (ret) reportErrorInNotifs("setupContext", ret);
 	
 	u8 done_one = 0;
 	u8 useless_buf[0x1000];
@@ -155,8 +136,6 @@ void getApiResponse(const char * url, u8 * buf)
 	} while (ret == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING);
 	
 	httpcCloseContext(&context);
-	
-	if (ret) reportErrorInNotifs("httpcDownloadData", ret);
 	
 	httpcExit();
 }
