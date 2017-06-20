@@ -176,7 +176,7 @@ char *strstr(const char *haystack, const char *needle)
 	u32 offset = 0;
 	
 	while (*(haystack + offset)) {
-		if (strncmp((haystack + offset), needle, strlen(needle)))
+		if (!strncmp((haystack + offset), needle, strlen(needle)))
 			return (char *)(haystack + offset);
 		offset++;
 	}
