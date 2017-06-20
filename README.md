@@ -4,7 +4,6 @@
 ## What it is
 
 This is a modified version of Luma3DS that takes advantage of the background process "Rosalina" in order to automatically check for updates to the Luma3DS CFW. This fork is *not* intended to be used yet, though it is in a usable state as of right now.
----
 
 ## Compiling
 
