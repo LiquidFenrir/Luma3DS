@@ -20,6 +20,147 @@ MyThread *updateCreateThread(void)
 	return	&updateThread;
 }
 
+// Thanks Jess <3
+void AtoW(char* in, u16* out) {
+	int i;
+	for (i = 0; i < strlen(in); i++)
+		out[i] = in[i];
+}
+
+void addNotif(const char * title, const char * message)
+{
+	u16 titleBytes[256]  = {0};
+	AtoW((char*)title, titleBytes);
+	
+	u16 messageBytes[256] = {0};
+	AtoW((char*)message, messageBytes);
+	
+	newsInit();
+	NEWS_AddNotification(titleBytes, strlen(title), messageBytes, strlen(message), NULL, 0, false);
+	newsExit();
+}
+
+void reportErrorInNotifs(const char * errorSource, Result retToShow)
+{
+	char messageString[96] = {0};
+	sprintf(messageString, "An error occured in:\n%s\nret: 0x%.8lx", errorSource, retToShow);
+	
+	addNotif("An error happened!", messageString);
+}
+
+Result setupContext(httpcContext * context, const char * url, u32 * size)
+{
+	Result ret = 0;
+	u32 statuscode = 0;
+	
+	ret = httpcOpenContext(context, HTTPC_METHOD_GET, url, 1);
+	if (ret != 0) {
+		reportErrorInNotifs("httpcOpenContext", ret);
+		httpcCloseContext(context);
+		return ret;
+	}
+	
+	ret = httpcAddRequestHeaderField(context, "User-Agent", "MultiUpdater");
+	if (ret != 0) {
+		reportErrorInNotifs("httpcAddRequestHeaderField", ret);
+		httpcCloseContext(context);
+		return ret;
+	}
+	
+	ret = httpcSetSSLOpt(context, SSLCOPT_DisableVerify);
+	if (ret != 0) {
+		reportErrorInNotifs("httpcSetSSLOpt", ret);
+		httpcCloseContext(context);
+		return ret;
+	}
+	
+	ret = httpcAddRequestHeaderField(context, "Connection", "Keep-Alive");
+	if (ret != 0) {
+		reportErrorInNotifs("httpcAddRequestHeaderField", ret);
+		httpcCloseContext(context);
+		return ret;
+	}
+	
+	ret = httpcBeginRequest(context);
+	if (ret != 0) {
+		reportErrorInNotifs("httpcBeginRequest", ret);
+		httpcCloseContext(context);
+		return ret;
+	}
+	
+	ret = httpcGetResponseStatusCode(context, &statuscode);
+	if (ret != 0) {
+		reportErrorInNotifs("httpcGetResponseStatusCode", ret);
+		httpcCloseContext(context);
+		return ret;
+	}
+	
+	if ((statuscode >= 301 && statuscode <= 303) || (statuscode >= 307 && statuscode <= 308)) {
+		char newurl[0x1000] = {0}; // One 4K page for new URL
+		
+		ret = httpcGetResponseHeader(context, "Location", newurl, 0x1000);
+		if (ret != 0) {
+			reportErrorInNotifs("httpcGetResponseHeader", ret);
+			httpcCloseContext(context);
+			return ret;
+		}
+		
+		httpcCloseContext(context); // Close this context before we try the next
+		
+		//fuck local redirections
+		
+		ret = setupContext(context, newurl, size);
+		return ret;
+	}
+	
+	if (statuscode != 200) {
+		reportErrorInNotifs("statuscode not 200 ok", statuscode);
+		httpcCloseContext(context);
+		return -1;
+	}
+	
+	ret = httpcGetDownloadSizeState(context, NULL, size);
+	if (ret != 0) {
+		reportErrorInNotifs("httpcGetDownloadSizeState", ret);
+		httpcCloseContext(context);
+		return ret;
+	}
+	
+	return 0;
+}
+
+void getApiResponse(const char * url, u8 * buf)
+{
+	Result ret = 0;
+	
+	ret = httpcInit(0);
+	if (ret) reportErrorInNotifs("httpcInit", ret);
+	
+	httpcContext context;
+	u32 contentsize = 0, readsize = 0;
+	
+	ret = setupContext(&context, url, &contentsize);
+	if (ret) reportErrorInNotifs("setupContext", ret);
+	
+	u8 done_one = 0;
+	u8 useless_buf[0x1000];
+	do {
+		if (!done_one) {
+			ret = httpcDownloadData(&context, buf, 0x1000, &readsize);
+			done_one = 1;
+		}
+		else {
+			ret = httpcDownloadData(&context, useless_buf, 0x1000, &readsize);
+		}
+	} while (ret == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING);
+	
+	httpcCloseContext(&context);
+	
+	if (ret) reportErrorInNotifs("httpcDownloadData", ret);
+	
+	httpcExit();
+}
+
 //use with https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest
 void getReleaseTagName(const char * apiresponse) {
 	char * tagstring = "\"tag_name\": \"";
@@ -69,13 +210,6 @@ void getVersion(void) {
 	currentCommitHash = (u32)out;
 }
 
-// Thanks Jess <3
-void AtoW(char* in, u16* out) {
-	int i;
-	for (i = 0; i < strlen(in); i++)
-		out[i] = in[i];
-}
-
 void updateThreadMain(void)
 {
 	while(!terminationRequest) 
@@ -84,25 +218,18 @@ void updateThreadMain(void)
 		{
 			getVersion();
 			
-			/*
 			char apiresponse[0x1000] = {0};
-			//something something sockets
+			getApiResponse("http://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse);
 			getReleaseTagName(apiresponse);
-			*/
 			
-			strcpy(releaseTagName, "v8.1.2");
+			// strcpy(releaseTagName, "v8.1.2");
 			
 			if (strcmp(currentVersionString, releaseTagName)) {
 				char messageString[96] = {0};
 				
 				sprintf(messageString, "Your Luma is out of date!\nCurrent Luma Version: %s\nMost recent version: %s", currentVersionString, releaseTagName);
 				
-				u16 messageBytes[192] = {0};
-				AtoW(messageString, messageBytes);
-				
-				newsInit();
-				NEWS_AddNotification(u"Luma3DS update available!", 25, messageBytes, strlen(messageString), NULL, 0, false);
-				newsExit();
+				addNotif("Luma3DS update available!", messageString);
 			}
 		}
 		svcSleepThread(50 * 1000 * 1000LL);
