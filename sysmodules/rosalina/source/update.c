@@ -203,7 +203,8 @@ void updateThreadMain(void)
 			
 			// strcpy(releaseTagName, "v8.1.2");
 			
-			if (strcmp(currentVersionString, releaseTagName)) {
+			//if the download failed, the releaseTagName will be blank, don't send a notif in that case
+			if (releaseTagName[0] != '\0' && strcmp(currentVersionString, releaseTagName)) {
 				char messageString[96] = {0};
 				
 				sprintf(messageString, "Your Luma is out of date!\nCurrent Luma Version: %s\nMost recent version: %s", currentVersionString, releaseTagName);
