@@ -26,17 +26,57 @@ void AtoW(char* in, u16* out) {
 		out[i] = in[i];
 }
 
-void addNotif(const char * title, const char * message)
+void addNotif(const char * title, const char * message, bool update)
 {
 	u16 titleBytes[256] = {0};
 	AtoW((char*)title, titleBytes);
+	u32 titleLength = strlen(title);
 
 	u16 messageBytes[256] = {0};
 	AtoW((char*)message, messageBytes);
+	u32 messageLength = strlen(message);
 
-	newsInit();
-	NEWS_AddNotification(titleBytes, strlen(title), messageBytes, strlen(message), NULL, 0, false);
-	newsExit();
+	if (update)
+	{
+		//most of this below is taken from ctrulib with small modifications
+
+		Handle newsHandle;
+		srvGetServiceHandle(&newsHandle, "news:s");
+
+		NotificationHeader header = {0};
+		header.dataSet = true;
+		header.unread = true;
+		header.enableJPEG = false;
+		header.isSpotPass = true;
+		header.isOptedOut = false;
+
+		header.processID = 0x0004000000585900; //miniLumaUpdater titleid
+		header.time = osGetTime();
+
+		memcpy(header.title, titleBytes, (titleLength < 32 ? titleLength + 1 : 32) * sizeof(u16));
+
+		u32 * cmdbuf = getThreadCommandBuffer();
+
+		cmdbuf[0] = IPC_MakeHeader(0x1, 3, 6); // 0x100C6
+		cmdbuf[1] = sizeof(NotificationHeader);
+		cmdbuf[2] = (messageLength + 1) * sizeof(u16);
+		cmdbuf[3] = 0; //imageSize
+		cmdbuf[4] = IPC_Desc_Buffer(sizeof(NotificationHeader), IPC_BUFFER_R);
+		cmdbuf[5] = (u32) &header;
+		cmdbuf[6] = IPC_Desc_Buffer((messageLength + 1) * sizeof(u16), IPC_BUFFER_R);
+		cmdbuf[7] = (u32) messageBytes;
+		cmdbuf[8] = IPC_Desc_Buffer(0, IPC_BUFFER_R); //imageSize, again
+		cmdbuf[9] = (u32) NULL; //pointer to imageData
+
+		svcSendSyncRequest(newsHandle);
+		svcCloseHandle(newsHandle);
+	}
+	else
+	{
+		newsInit();
+		NEWS_AddNotification(titleBytes, titleLength, messageBytes, messageLength, NULL, 0, false);
+		newsExit();
+	}
 }
 
 Result setupContext(httpcContext * context, const char * url, u32 * size)
@@ -203,9 +243,9 @@ void updateThreadMain(void)
 			if (releaseTagName[0] != '\0' && strcmp(currentVersionString, releaseTagName)) {
 				char messageString[128] = {0};
 
-				sprintf(messageString, "Your Luma is out of date!\nCurrent Luma Version: %s\nMost recent version: %s", currentVersionString, releaseTagName);
+				sprintf(messageString, "Your Luma3DS is out of date!\nInstalled Luma3DS version: %s\nMost recent version: %s", currentVersionString, releaseTagName);
 
-				addNotif("Luma3DS update available!", messageString);
+				addNotif("Luma3DS update available!", messageString, true);
 			}
 			lastCheck = currentTime;
 		}
