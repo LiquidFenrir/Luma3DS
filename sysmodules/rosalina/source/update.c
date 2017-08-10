@@ -178,7 +178,7 @@ u32 waitForInternet(void)
 	ACU_GetWifiStatus(&wifiStatus);
 	while (wifiStatus == 0) {
 		ACU_GetWifiStatus(&wifiStatus);
-		svcSleepThread(300000 * 10000LL);
+		svcSleepThread((u64)3 * 1000 * 1000 * 1000); //3 seconds
 	}
 	acExit();
 	return wifiStatus;
@@ -187,14 +187,13 @@ u32 waitForInternet(void)
 void updateThreadMain(void)
 {
 	waitForInternet();
-	u64 lastCheck = 0;
-	u64 currentTime = osGetTime();
+	u64 currentTime, lastCheck = 0;
 	while(!terminationRequest) 
 	{
 		currentTime = osGetTime();
-		if (lastCheck + (8.64 * 10000000) < currentTime)
+		//1 day in milliseconds
+		if (lastCheck + (24 * 60 * 60 * 1000) < currentTime)
 		{
-			//currentTime = osGetTime();
 			char apiresponse[0x1000] = {0};
 			getApiResponse("https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse);
 			getReleaseTagName(apiresponse);
@@ -208,8 +207,8 @@ void updateThreadMain(void)
 
 				addNotif("Luma3DS update available!", messageString);
 			}
-			lastCheck = osGetTime();
+			lastCheck = currentTime;
 		}
-		svcSleepThread(50 * 1000 * 1000LL);
+		svcSleepThread((u64)50 * 1000 * 1000); //50 ms
 	}
 }
