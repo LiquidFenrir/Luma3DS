@@ -8,10 +8,7 @@ static MyThread updateThread;
 static u8 ALIGN(8) updateThreadStack[THREAD_STACK_SIZE];
 
 static char releaseTagName[10] = {0};
-static u32 releaseCommitHash = 0;
-
 static char currentVersionString[10] = {0};
-static u32 currentCommitHash = 0;
 
 MyThread *updateCreateThread(void)
 {
@@ -156,23 +153,6 @@ void getReleaseTagName(const char * apiresponse) {
 	}
 }
 
-//use with https://api.github.com/repos/AuroraWright/Luma3DS/tags
-//and use getReleaseTagName before
-void getReleaseCommitHash(const char * apiresponse) {
-	char namestring[21] = {0};
-	sprintf(namestring, "\"name\":\"%s\"", releaseTagName);
-	char * shastring = "\"sha\": \"";
-
-	char *namestart, *shastart;
-
-	if ((namestart = strstr(apiresponse, namestring)) != NULL) {
-		if ((shastart = strstr(namestart, shastring)) != NULL) {
-			shastart += strlen(shastring);
-			releaseCommitHash = (u32)xstrtoul(shastart, &shastart+8, 16, 0, 0);
-		}
-	}
-}
-
 void getVersion(void) {
 	s64 out;
 	u32 version;
@@ -184,9 +164,6 @@ void getVersion(void) {
 		sprintf(currentVersionString, "v%u.%u.%u", GET_VERSION_MAJOR(version), GET_VERSION_MINOR(version), GET_VERSION_REVISION(version));
 	else
 		sprintf(currentVersionString, "v%u.%u", GET_VERSION_MAJOR(version), GET_VERSION_MINOR(version));
-
-	svcGetSystemInfo(&out, 0x10000, 1);
-	currentCommitHash = (u32)out;
 }
 
 u32 waitForInternet(void) 
