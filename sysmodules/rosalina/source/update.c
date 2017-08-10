@@ -3,6 +3,8 @@
 #include "menu.h"
 #include "memory.h"
 #include "fmt.h"
+#include "cybertrust.h"
+#include "digicert.h"
 
 static MyThread updateThread;
 static u8 ALIGN(8) updateThreadStack[THREAD_STACK_SIZE];
@@ -48,13 +50,19 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 		return ret;
 	}
 
-	ret = httpcAddRequestHeaderField(context, "User-Agent", "MultiUpdater");
+	ret = httpcAddRequestHeaderField(context, "User-Agent", "LumaSelfCheck");
 	if (ret != 0) {
 		httpcCloseContext(context);
 		return ret;
 	}
 
-	ret = httpcSetSSLOpt(context, SSLCOPT_DisableVerify);
+	ret = httpcAddTrustedRootCA(context, cybertrust_cer, cybertrust_cer_len);
+	if (ret != 0) {
+		httpcCloseContext(context);
+		return ret;
+	}
+
+	ret = httpcAddTrustedRootCA(context, digicert_cer, digicert_cer_len);
 	if (ret != 0) {
 		httpcCloseContext(context);
 		return ret;
@@ -88,9 +96,6 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 		}
 
 		httpcCloseContext(context); // Close this context before we try the next
-
-		//fuck local redirections
-
 		ret = setupContext(context, newurl, size);
 		return ret;
 	}
@@ -191,7 +196,7 @@ void updateThreadMain(void)
 		{
 			//currentTime = osGetTime();
 			char apiresponse[0x1000] = {0};
-			getApiResponse("http://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse);
+			getApiResponse("https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse);
 			getReleaseTagName(apiresponse);
 			getVersion();
 
