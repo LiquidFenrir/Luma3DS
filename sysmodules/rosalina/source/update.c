@@ -20,9 +20,10 @@ MyThread *updateCreateThread(void)
 }
 
 // Thanks Jess <3
-void AtoW(char* in, u16* out) {
+void AtoW(char* in, u16* out)
+{
 	int i;
-	for (i = 0; i < strlen(in); i++)
+	for(i = 0; i < strlen(in); i++)
 		out[i] = in[i];
 }
 
@@ -36,7 +37,7 @@ void addNotif(const char * title, const char * message, bool update)
 	AtoW((char*)message, messageBytes);
 	u32 messageLength = strlen(message);
 
-	if (update)
+	if(update)
 	{
 		//most of this below is taken from ctrulib with small modifications
 
@@ -85,52 +86,61 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 	u32 statuscode = 0;
 
 	ret = httpcOpenContext(context, HTTPC_METHOD_GET, url, 1);
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
 
 	ret = httpcAddRequestHeaderField(context, "User-Agent", "LumaSelfCheck");
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
 
 	ret = httpcAddTrustedRootCA(context, cybertrust_cer, cybertrust_cer_len);
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
 
 	ret = httpcAddTrustedRootCA(context, digicert_cer, digicert_cer_len);
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
 
 	ret = httpcAddRequestHeaderField(context, "Connection", "Keep-Alive");
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
 
 	ret = httpcBeginRequest(context);
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
 
 	ret = httpcGetResponseStatusCode(context, &statuscode);
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
 
-	if ((statuscode >= 301 && statuscode <= 303) || (statuscode >= 307 && statuscode <= 308)) {
+	if((statuscode >= 301 && statuscode <= 303) || (statuscode >= 307 && statuscode <= 308))
+	{
 		char newurl[0x1000] = {0}; // One 4K page for new URL
 
 		ret = httpcGetResponseHeader(context, "Location", newurl, 0x1000);
-		if (ret != 0) {
+		if(ret != 0)
+		{
 			httpcCloseContext(context);
 			return ret;
 		}
@@ -140,13 +150,15 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 		return ret;
 	}
 
-	if (statuscode != 200) {
+	if(statuscode != 200)
+	{
 		httpcCloseContext(context);
 		return -1;
 	}
 
 	ret = httpcGetDownloadSizeState(context, NULL, size);
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		httpcCloseContext(context);
 		return ret;
 	}
@@ -167,29 +179,36 @@ void getApiResponse(const char * url, u8 * buf, u32 bufsize)
 
 	bool done_one = false;
 	u8 useless;
-	do {
-		if (!done_one) {
+	do
+	{
+		if(!done_one)
+		{
 			ret = httpcDownloadData(&context, buf, bufsize, &readsize);
 			done_one = true;
 		}
-		else {
+		else
+		{
 			ret = httpcDownloadData(&context, &useless, sizeof(u8), &readsize);
 		}
-	} while (ret == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING);
+	}
+	while(ret == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING);
 
 	httpcCloseContext(&context);
 	httpcExit();
 }
 
 //use with https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest
-void getReleaseTagName(const char * apiresponse) {
+void getReleaseTagName(const char * apiresponse)
+{
 	char * tagstring = "\"tag_name\":\"";
 	char * endstring = "\",";
 
 	char *tagstart, *tagend;
 
-	if ((tagstart = strstr(apiresponse, tagstring)) != NULL) {
-		if ((tagend = strstr(tagstart, endstring)) != NULL) {
+	if((tagstart = strstr(apiresponse, tagstring)) != NULL)
+	{
+		if((tagend = strstr(tagstart, endstring)) != NULL)
+		{
 			tagstart += strlen(tagstring);
 			int len = tagend-tagstart;
 			memcpy(releaseTagName, tagstart, len);
@@ -197,14 +216,15 @@ void getReleaseTagName(const char * apiresponse) {
 	}
 }
 
-void getVersion(void) {
+void getVersion(void)
+{
 	s64 out;
 	u32 version;
 
 	svcGetSystemInfo(&out, 0x10000, 0);
 	version = (u32)out;
 
-	if (GET_VERSION_REVISION(version) != 0)
+	if(GET_VERSION_REVISION(version) != 0)
 		sprintf(currentVersionString, "v%u.%u.%u", GET_VERSION_MAJOR(version), GET_VERSION_MINOR(version), GET_VERSION_REVISION(version));
 	else
 		sprintf(currentVersionString, "v%u.%u", GET_VERSION_MAJOR(version), GET_VERSION_MINOR(version));
@@ -215,7 +235,8 @@ u32 waitForInternet(void)
 	acInit();
 	u32 wifiStatus;
 	ACU_GetWifiStatus(&wifiStatus);
-	while (wifiStatus == 0) {
+	while(wifiStatus == 0)
+	{
 		ACU_GetWifiStatus(&wifiStatus);
 		svcSleepThread((u64)3 * 1000 * 1000 * 1000); //3 seconds
 	}
@@ -231,7 +252,7 @@ void updateThreadMain(void)
 	{
 		currentTime = osGetTime();
 		//1 day in milliseconds
-		if (lastCheck + (24 * 60 * 60 * 1000) < currentTime)
+		if(lastCheck + (24 * 60 * 60 * 1000) < currentTime)
 		{
 			char apiresponse[0x200] = {0};
 			getApiResponse("https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse, 0x200);
@@ -239,7 +260,8 @@ void updateThreadMain(void)
 			getVersion();
 
 			//if the download failed, the releaseTagName will be blank, don't send a notif in that case 
-			if (releaseTagName[0] != '\0' && strcmp(currentVersionString, releaseTagName)) {
+			if(releaseTagName[0] != '\0' && strcmp(currentVersionString, releaseTagName))
+			{
 				char messageString[128] = {0};
 
 				sprintf(messageString, "Your Luma3DS is out of date!\nInstalled Luma3DS version: %s\nMost recent version: %s", currentVersionString, releaseTagName);
