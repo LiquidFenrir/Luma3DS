@@ -16,7 +16,7 @@ MyThread *updateCreateThread(void)
 {
     if(R_FAILED(MyThread_Create(&updateThread, updateThreadMain, updateThreadStack, THREAD_STACK_SIZE, 0x3F, CORE_SYSTEM)))
         svcBreak(USERBREAK_PANIC);
-    return    &updateThread;
+    return &updateThread;
 }
 
 // Thanks Jess <3
@@ -230,7 +230,7 @@ void getVersion(void)
         sprintf(currentVersionString, "v%u.%u", GET_VERSION_MAJOR(version), GET_VERSION_MINOR(version));
 }
 
-u32 waitForInternet(void) 
+u32 waitForInternet(void)
 {
     acInit();
     u32 wifiStatus;
@@ -248,7 +248,7 @@ void updateThreadMain(void)
 {
     waitForInternet();
     u64 currentTime, lastCheck = 0;
-    while(!terminationRequest) 
+    while(!terminationRequest)
     {
         currentTime = osGetTime();
         //1 day in milliseconds
