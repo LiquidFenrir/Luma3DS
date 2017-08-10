@@ -154,7 +154,7 @@ Result setupContext(httpcContext * context, const char * url, u32 * size)
 	return 0;
 }
 
-void getApiResponse(const char * url, u8 * buf)
+void getApiResponse(const char * url, u8 * buf, u32 bufsize)
 {
 	Result ret = 0;
 
@@ -166,19 +166,18 @@ void getApiResponse(const char * url, u8 * buf)
 	ret = setupContext(&context, url, &contentsize);
 
 	bool done_one = false;
-	u8 useless_buf[0x1000];
+	u8 useless;
 	do {
 		if (!done_one) {
-			ret = httpcDownloadData(&context, buf, 0x1000, &readsize);
+			ret = httpcDownloadData(&context, buf, bufsize, &readsize);
 			done_one = true;
 		}
 		else {
-			ret = httpcDownloadData(&context, useless_buf, 0x1000, &readsize);
+			ret = httpcDownloadData(&context, &useless, sizeof(u8), &readsize);
 		}
 	} while (ret == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING);
 
 	httpcCloseContext(&context);
-
 	httpcExit();
 }
 
@@ -234,8 +233,8 @@ void updateThreadMain(void)
 		//1 day in milliseconds
 		if (lastCheck + (24 * 60 * 60 * 1000) < currentTime)
 		{
-			char apiresponse[0x1000] = {0};
-			getApiResponse("https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse);
+			char apiresponse[0x200] = {0};
+			getApiResponse("https://api.github.com/repos/AuroraWright/Luma3DS/releases/latest", (u8*)apiresponse, 0x200);
 			getReleaseTagName(apiresponse);
 			getVersion();
 
